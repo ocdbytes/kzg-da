@@ -1,0 +1,25 @@
+[package]
+name = "kzg-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ark-std = "0.4"
+ark-ec = "0.4"
+ark-ff = "0.4"
+ark-bls12-381 = "0.4"
+rand = "0.8.5"
+c-kzg = "1.0.0"
+alloy = { git = "https://github.com/alloy-rs/alloy", rev = "68952c0", features = [
+    "consensus",
+    "providers",
+    "rpc-client",
+    "transport-http",
+    "network",
+    "eips",
+    "signers",
+    "signer-wallet",
+] }
+tokio = { version = "1.36.0", features = ["rt", "rt-multi-thread", "macros"]}
