@@ -34,13 +34,12 @@ async fn main() {
     }
 
     let data_v8 = hex_string_to_u8_vec(&data).expect("error creating hex string from data");
-    let x_0 = "0x1cab333ee4c0b03ba79bb51bc537545e3aef820434c0c06e00235dd9ccdafdf";
-    let x_0_array = string_to_fixed_array(x_0).unwrap();
+    let x_0 = "0x01cab333ee4c0b03ba79bb51bc537545e3aef820434c0c06e00235dd9ccdafdf";
 
-    println!("x_0_array : {:?}",x_0_array);
+    println!("x_0 : {:?}",x_0);
 
     let (_sidecar_blobs, sidecar_commitments, sidecar_proofs) =
-        prepare_sidecar(&[data_v8], &trusted_setup, x_0_array).await.expect("Error creating the sidecar blobs");
+        prepare_sidecar(&[data_v8], &trusted_setup, x_0).await.expect("Error creating the sidecar blobs");
 }
 
 fn hex_string_to_u8_vec(hex_str: &str) -> Result<Vec<u8>, String> {
@@ -63,7 +62,7 @@ fn hex_string_to_u8_vec(hex_str: &str) -> Result<Vec<u8>, String> {
 async fn prepare_sidecar(
     state_diff: &[Vec<u8>],
     trusted_setup: &KzgSettings,
-    x_0_point: [u8; 32]
+    x_0_point: &str
 ) -> Result<(Vec<FixedBytes<131072>>, Vec<FixedBytes<48>>, Vec<FixedBytes<48>>), Error> {
     let mut sidecar_blobs = vec![];
     let mut sidecar_commitments = vec![];
@@ -75,23 +74,19 @@ async fn prepare_sidecar(
 
         let blob = Blob::new(fixed_size_blob);
         println!("blob : {:?}", blob.len());
-        println!("bytes x_0 = z : {:?}", &Bytes32::from(x_0_point));
         println!("trusted_setup : {:?}",trusted_setup);
-        let proof_kzg_output_final = KzgProof::compute_kzg_proof(&blob, &Bytes32::from(x_0_point), trusted_setup).unwrap();
+        let proof_kzg_output_final = KzgProof::compute_kzg_proof(&blob, &Bytes32::from_hex(x_0_point).unwrap(), trusted_setup).unwrap();
         println!("KZG Proof (C' & C) = π: {:?}", proof_kzg_output_final.0.as_hex_string());
-        let string_eval: String = String::from_utf8_lossy(proof_kzg_output_final.1.as_ref()).to_string().encode_hex();
         println!("Eval(x_0) = y : {:?}", proof_kzg_output_final.1);
-        println!("Eval(x_0) = y : {:?}", string_eval);
 
         let commitment = KzgCommitment::blob_to_kzg_commitment(&blob, trusted_setup)?;
         let proof = KzgProof::compute_blob_kzg_proof(&blob, &commitment.to_bytes(), trusted_setup)?;
-        let eval = KzgProof::verify_kzg_proof(&commitment.to_bytes(),&Bytes32::from(x_0_point), &proof_kzg_output_final.1, &proof.to_bytes(), trusted_setup).unwrap();
+        let eval = KzgProof::verify_kzg_proof(&commitment.to_bytes(),&Bytes32::from_hex(x_0_point).unwrap(), &proof_kzg_output_final.1, &proof_kzg_output_final.0.to_bytes(), trusted_setup).unwrap();
         println!("Verified : {:?}", eval);
 
         sidecar_blobs.push(FixedBytes::new(fixed_size_blob));
         sidecar_commitments.push(FixedBytes::new(commitment.to_bytes().into_inner()));
         sidecar_proofs.push(FixedBytes::new(proof.to_bytes().into_inner()));
-
     }
 
     println!("KZG Proof (C) : {:?}", sidecar_proofs[0]);
